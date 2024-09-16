@@ -312,7 +312,7 @@ with tab3:
         st.stop()
 
     # Filtrage sur la variable "Sexe"
-    sexe_modalities = ['Aucun', 'H', 'F']
+    sexe_modalities = ['Aucun', 'M', 'F']
     selected_sexe = st.selectbox(
         "Sélectionnez le sexe à inclure dans l'ACM",
         sexe_modalities,
