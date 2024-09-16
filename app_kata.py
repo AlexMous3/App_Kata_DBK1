@@ -1,11 +1,3 @@
-pip install matplotlib
-pip install seaborn
-pip install plotly_express
-pip install scipy
-pip install prince
-pip install plotly
-
-
 from datetime import timedelta
 
 from pathlib import Path
