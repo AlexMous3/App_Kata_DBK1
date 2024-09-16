@@ -29,6 +29,9 @@ import streamlit as st
 def load_data():
     data = pd.read_csv('Database_K1_2024.csv', sep=';', encoding='utf-8')
 
+    # remplacement des "," dans Note
+    data['Note'] = data['Note'].str.replace(',', '.', regex=False)
+
     # Conversion des variables numériques
     data['Age'] = pd.to_numeric(data['Age'], errors='coerce').astype('Int64')
     data['Ranking'] = pd.to_numeric(data['Ranking'], errors='coerce').astype('Int64')
