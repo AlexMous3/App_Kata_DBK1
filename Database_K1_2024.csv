@@ -300,7 +300,7 @@ Alforte_Sakura;F;21;PHI;Est_Asia;18;Ohan;Shito;40,9;Pool_3;TUR;West_ASIA;B;True
 Sadeghi_Dastak_Fatemeh;F;24;IRI;M_O;55;Suparinpei;Shito;39,9;Pool_3;TUR;West_ASIA;R;True
 Juettner_Jasmin;F;31;GER;Europe;28;Sansai;Shotokan;39,5;Pool_3;TUR;West_ASIA;B;False
 Mishima_Kiri;F;23;JPN;Est_Asia;3;Chatanyara_Kushanku;Shito;41,4;Pool_1;TUR;West_ASIA;R;True
-Putri_Aprilia_Krisda;F;25;INA;Est_Asia;34;Papuren;Shito;0;Pool_1;TUR;West_ASIA;B;False
+Putri_Aprilia_Krisda;F;25;INA;Est_Asia;34;Papuren;Shito;40;Pool_1;TUR;West_ASIA;B;False
 Mishima_Kiri;F;23;JPN;Est_Asia;3;Suparinpei;Shito;41,4;Pool_2;TUR;West_ASIA;R;False
 Lau_Mo_Sheung_Grace;F;32;HKG;Est_Asia;1;Suparinpei;Shito;41,8;Pool_1;TUR;West_ASIA;B;True
 Putri_Aprilia_Krisda;F;25;INA;Est_Asia;34;Suparinpei;Shito;38,9;Pool_2;TUR;West_ASIA;R;False
@@ -355,7 +355,7 @@ Hrcka_Roman;M;20;SVK;Europe;29;Ohan;Shito;39,9;Pool_3;TUR;West_ASIA;R;False
 Ikeda_Ryusei;M;25;JPN;Est_Asia;7;Anan;Shito;41,8;Pool_3;TUR;West_ASIA;B;True
 Kaynar_Furkan;M;18;TUR;Europe;81;Gojushiho_Sho;Shotokan;40,4;Pool_1;TUR;West_ASIA;R;True
 Gruitia_Matthew;M;17;CAN;North_Am;200;Anan_Dai;Shito;38,5;Pool_1;TUR;West_ASIA;B;False
-Kaynar_Furkan;M;18;TUR;Europe;81;Unsu;Shotokan;40,4;Pool_2;TUR;West_ASIA;R;True
+Kaynar_Furkan;M;18;TUR;Europe;81;Unsu;Shotokan;40,4;Pool_2;TUR;West_ASIA;R;False
 Torres_Gutierrez_Ariel;M;26;USA;North_Am;2;Kururunfa;Shito;41,6;Pool_1;TUR;West_ASIA;B;True
 Gruitia_Matthew;M;17;CAN;North_Am;200;Kururunfa;Shito;39,2;Pool_2;TUR;West_ASIA;R;False
 Torres_Gutierrez_Ariel;M;26;USA;North_Am;2;Ohan;Shito;41,4;Pool_2;TUR;West_ASIA;B;True
