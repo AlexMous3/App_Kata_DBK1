@@ -29,8 +29,8 @@ import streamlit as st
 def load_data():
     data = pd.read_csv('Database_K1_2024.csv', sep=';', encoding='utf-8')
 
-    # remplacement des "," dans Note
-    data['Note'] = data['Note'].str.replace(',', '.', regex=False)
+    # Remplacer les virgules par des points dans la colonne 'Note'
+    data['Note'] = data['Note'].astype(str).str.replace(',', '.', regex=False)
 
     # Conversion des variables numériques
     data['Age'] = pd.to_numeric(data['Age'], errors='coerce').astype('Int64')
@@ -48,7 +48,7 @@ def load_data():
 
 data = load_data()
 
-tab1, tab2, tab3 = st.tabs(["Dataset", "Générateur de graphiques intéractifs", "ACM"])
+tab1, tab2, tab3, tab4 = st.tabs(["Dataset", "Générateur de graphiques intéractifs", "ACM", "Focus Athlète"])
 
 with tab1:
     st.header("Affichage du Dataset de Karaté")
@@ -80,6 +80,15 @@ with tab1:
 
 with tab2:
     st.header("Générateur de Graphiques Interactifs")
+
+    st.markdown("""
+    ### Comment utiliser les graphiques interactifs :
+
+    1. **Sélectionnez la variable que vous souhaitez étudier en Y**, en fonction d'une autre variable en X. Par exemple, si vous voulez voir la **victoire** en fonction de la **ceinture**, choisissez **"Victoire"** en variable catégorielle Y, et **"Ceinture"** en variable catégorielle X.
+    2. **Une seule variable par axe** : Vous pouvez choisir une variable pour l'axe X et une variable pour l'axe Y.
+    3. **Effectuer un test statistique** : Après avoir affiché le graphique correspondant, vous pouvez cliquer sur **"Effectuer le test statistique"** pour étudier la relation entre les variables sélectionnées.
+    4. **Distribution de variable numérique** : Pour étudier la distribution d'une variable numérique (exemple la note), il suffit de mettre la **variable numérique en Y**, sans mettre aucune variable en X
+    """)
 
     # Séparer les variables numériques et catégorielles
     variables_numeriques = ['Age', 'Ranking', 'Note']
@@ -189,25 +198,57 @@ with tab2:
 
     # Cas 3 : Une seule variable catégorielle en Y
     elif y_cat != "Aucune" and x_num == "Aucune" and x_cat == "Aucune" and y_num == "Aucune":
+        # Option pour filtrer sur une variable catégorielle
+        filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
+
+        if filtre_var != "Aucune":
+            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
+            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+        else:
+            data_filtered = data
+
+        # Histogramme des effectifs
+        st.markdown(f"**Histogramme des effectifs de chaque modalité de {y_cat}**")
+        counts = data_filtered[y_cat].value_counts().reset_index()
+        counts.columns = [y_cat, 'Effectif']
+        fig_count = px.bar(counts, x=y_cat, y='Effectif')
+        st.plotly_chart(fig_count)
+
+        # Histogramme des proportions
         st.markdown(f"**Histogramme des proportions de chaque modalité de {y_cat}**")
-        counts = data[y_cat].value_counts(normalize=True).reset_index()
-        counts.columns = [y_cat, 'Proportion']
-        fig = px.bar(counts, x=y_cat, y='Proportion')
-        st.plotly_chart(fig)
+        counts_prop = data_filtered[y_cat].value_counts(normalize=True).reset_index()
+        counts_prop.columns = [y_cat, 'Proportion']
+        fig_prop = px.bar(counts_prop, x=y_cat, y='Proportion')
+        st.plotly_chart(fig_prop)
 
     # Cas 4 : Variables catégorielles en X et en Y
     elif y_cat != "Aucune" and x_cat != "Aucune" and y_num == "Aucune" and x_num == "Aucune":
         st.markdown(f"**Proportions des modalités de {y_cat} en fonction de {x_cat}**")
-        crosstab = pd.crosstab(data[x_cat], data[y_cat], normalize='index')
+
+        # Option pour filtrer sur une variable catégorielle
+        filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
+
+        if filtre_var != "Aucune":
+            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
+            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+        else:
+            data_filtered = data
+
+        # Calculer le tableau croisé des proportions
+        crosstab = pd.crosstab(data_filtered[x_cat], data_filtered[y_cat], normalize='index')
         crosstab.reset_index(inplace=True)
         crosstab_melted = crosstab.melt(id_vars=x_cat, var_name=y_cat, value_name='Proportion')
+
+        # Générer le graphique
         fig = px.bar(crosstab_melted, x=x_cat, y='Proportion', color=y_cat, barmode='stack')
         st.plotly_chart(fig)
 
         # Section "Test Statistique"
         st.subheader("Test Statistique")
         if st.button("Effectuer le test du Chi-deux"):
-            contingency_table = pd.crosstab(data[x_cat], data[y_cat])
+            contingency_table = pd.crosstab(data_filtered[x_cat], data_filtered[y_cat])
             stat, p_value, dof, expected = stats.chi2_contingency(contingency_table)
 
             if p_value < 0.05:
@@ -220,6 +261,7 @@ with tab2:
             - **Hypothèse nulle (H₀)** : Il n'y a pas d'association entre **{x_cat}** et **{y_cat}**.
             - **Résultat** : Si la valeur p est inférieure à 0,05, on rejette H₀, ce qui suggère une association significative entre les variables.
             """)
+
 
     # Cas 5 : Variables numériques en X et Y
     elif x_num != "Aucune" and y_num != "Aucune" and x_cat == "Aucune" and y_cat == "Aucune":
@@ -286,8 +328,12 @@ with tab3:
             return 'Match de médaille'
         elif row['N_Tour'] in ['R1', 'R2']:
             return 'Quart (R1), Demi (R2)'
-        elif row['N_Tour'] in ['Pool_1', 'Pool_2', 'Pool_3']:
-            return 'Match de Poule'
+        elif row['N_Tour'] in ['Pool_1']:
+            return 'Tour1'
+        elif row['N_Tour'] in ['Pool_2']:
+            return 'Tour2'
+        elif row['N_Tour'] in ['Pool_3']:
+            return 'Tour3'
         else:
             return None  # Retourne None au lieu de 'Autre'
 
@@ -485,6 +531,274 @@ with tab3:
 
     N'hésitez pas à explorer les données en modifiant les filtres ci-dessus pour voir comment cela affecte le graphique et les relations entre les variables.
     """)
+
+with tab4:
+    st.header("Focus Athlète")
+
+    # Obtenir la liste des athlètes uniques
+    athlete_names = data['Nom'].dropna().unique().tolist()
+    athlete_names.sort()  # Trier les noms pour une meilleure expérience utilisateur
+
+    # Sélectionner un athlète
+    selected_athlete = st.selectbox("Sélectionnez un athlète", athlete_names)
+
+    # Filtrer les données pour l'athlète sélectionné
+    athlete_data = data[data['Nom'] == selected_athlete]
+
+    # Extraire les informations
+    sexe = athlete_data['Sexe'].mode()[0] if not athlete_data['Sexe'].mode().empty else "Non spécifié"
+    age_mean = athlete_data['Age'].mean()
+    ranking_min = athlete_data['Ranking'].min()
+    ranking_max = athlete_data['Ranking'].max()
+    nation = athlete_data['Nation'].mode()[0] if not athlete_data['Nation'].mode().empty else "Non spécifié"
+    style = athlete_data['Style'].mode()[0] if not athlete_data['Style'].mode().empty else "Non spécifié"
+
+    # Formater le ranking
+    if ranking_min == ranking_max or pd.isna(ranking_min) or pd.isna(ranking_max):
+        ranking_str = f"{ranking_min}" if not pd.isna(ranking_min) else "Non spécifié"
+    else:
+        ranking_str = f"{ranking_min} - {ranking_max}"
+
+    # Disposition en colonnes
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("Informations de l'athlète")
+        st.markdown(f"""
+        - **Nom :** {selected_athlete}
+        - **Sexe :** {sexe}
+        - **Âge :** {age_mean:.1f} ans
+        - **Ranking :** {ranking_str}
+        - **Nationalité :** {nation}
+        - **Style :** {style}
+        """)
+
+    with col2:
+        # Dictionnaire pour les noms des compétitions
+        competition_names = {
+            'FRA': 'K1 Paris',
+            'TUR': 'K1 Antalya',
+            'EGY': 'K1 Cairo',
+            'MAR': 'K1 Casablanca'
+        }
+
+        # Ajouter une colonne avec le nom de la compétition
+        athlete_data['Compétition'] = athlete_data['Pays_compet'].map(competition_names)
+
+        # Dictionnaire pour les niveaux de tours
+        tour_levels = {
+            'Pool_1': 1,
+            'Pool_2': 1,
+            'Pool_3': 1,
+            'R1': 2,
+            'R2': 3,
+            'Bronze': 4,
+            'Finale': 5
+        }
+
+        tour_names = {
+            1: 'Poule',
+            2: 'Quart de finale',
+            3: 'Demi finale',
+            4: 'Place de 3',
+            5: 'Finale'
+        }
+
+        # Ajouter une colonne avec le niveau numérique du tour
+        athlete_data['Niveau_Tour'] = athlete_data['N_Tour'].map(tour_levels)
+
+        # Calculer le tour maximal atteint par compétition
+        max_tours = athlete_data.groupby('Compétition')['Niveau_Tour'].max().reset_index()
+        max_tours['Tour_Max'] = max_tours['Niveau_Tour'].map(tour_names)
+
+        st.subheader("Tour maximal atteint par compétition")
+        # Créer le graphique
+        fig = px.bar(
+            max_tours,
+            x='Compétition',
+            y='Niveau_Tour',
+            text='Tour_Max',
+            labels={'Niveau_Tour': 'Tour maximal atteint'},
+            range_y=[0, 5.5]  # Pour inclure tous les niveaux
+        )
+
+        # Personnaliser les axes
+        fig.update_yaxes(
+            tickmode='array',
+            tickvals=[1, 2, 3, 4, 5],
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
+        )
+
+        # Ajouter les labels sur les barres
+        fig.update_traces(textposition='outside')
+
+        # Afficher le graphique
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Section 3 : Histogramme des Katas effectués
+    st.subheader("3. Histogramme des Katas effectués")
+
+    # Sélectionner les tours pour le filtre
+    tour_options = athlete_data['N_Tour'].dropna().unique().tolist()
+    selected_tours = st.multiselect("Filtrer par tour (N_Tour)", options=tour_options, default=tour_options)
+
+    # Filtrer les données en fonction des tours sélectionnés
+    kata_data = athlete_data[athlete_data['N_Tour'].isin(selected_tours)]
+
+    # Compter les Katas
+    kata_counts = kata_data['Kata'].value_counts().reset_index()
+    kata_counts.columns = ['Kata', 'Nombre']
+
+    # Ne conserver que les Katas avec un count > 0
+    kata_counts = kata_counts[kata_counts['Nombre'] > 0]
+
+    # Vérifier qu'il y a des Katas à afficher
+    if kata_counts.empty:
+        st.warning("Aucun Kata à afficher pour les tours sélectionnés.")
+    else:
+        # Créer l'histogramme
+        fig_kata = px.bar(
+            kata_counts,
+            x='Kata',
+            y='Nombre',
+            title='Nombre de Katas effectués',
+            labels={'Nombre': 'Nombre de fois'},
+            text='Nombre'
+        )
+        fig_kata.update_layout(xaxis_title='Kata', yaxis_title='Nombre de fois')
+        fig_kata.update_traces(textposition='outside')
+        st.plotly_chart(fig_kata, use_container_width=True)
+
+    # Section 4 : Diagramme de Kiviat des notes par N_Tour
+    st.subheader("4. Diagramme de Kiviat de la moyenne des notes par N_Tour")
+    # Sélectionner les compétitions pour le filtre
+    competition_options = athlete_data['Pays_compet'].dropna().unique().tolist()
+    selected_competitions = st.multiselect("Filtrer par compétition", options=competition_options, default=competition_options)
+
+    # Filtrer les données en fonction des compétitions sélectionnées
+    note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
+
+    # Calculer la moyenne des notes par N_Tour
+    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Finale']
+    average_notes = []
+
+    for tour in n_tour_levels:
+        tour_data = note_data[note_data['N_Tour'] == tour]
+        # Exclure les valeurs de 'Note' nulles ou NaN
+        tour_data = tour_data.dropna(subset=['Note'])
+        if not tour_data.empty:
+            avg_note = tour_data['Note'].mean()
+        else:
+            avg_note = None
+        average_notes.append(avg_note)
+
+    # Préparer les données pour le diagramme de Kiviat
+    df_kiviat_tour = pd.DataFrame({
+        'N_Tour': n_tour_levels,
+        'Moyenne_Note': average_notes
+    })
+
+
+    # Supprimer les tours sans moyenne de note
+    df_kiviat_tour = df_kiviat_tour.dropna(subset=['Moyenne_Note'])
+
+
+    # Vérifier qu'il y a des données à afficher
+    if df_kiviat_tour.empty:
+        st.warning("Aucune donnée de note disponible pour les tours sélectionnés.")
+    else:
+        # Définir le range radial
+        min_note = 35.0
+        max_note = 50.0
+
+        # Créer le diagramme de Kiviat
+        fig_kiviat_tour = go.Figure()
+
+        fig_kiviat_tour.add_trace(go.Scatterpolar(
+            r=df_kiviat_tour['Moyenne_Note'],
+            theta=df_kiviat_tour['N_Tour'],
+            fill='toself',
+            name='Moyenne des Notes'
+        ))
+
+        # Mise en page du graphique
+        fig_kiviat_tour.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[min_note, max_note]
+                )
+            ),
+            showlegend=False,
+            title="Moyenne des notes par N_Tour"
+        )
+
+    # Section 5 : Diagramme de Kiviat des notes par Kata
+    st.subheader("5. Diagramme de Kiviat de la moyenne des notes par Kata")
+    # Calculer la moyenne des notes par Kata
+    kata_list = athlete_data['Kata'].dropna().unique().tolist()
+    average_notes_kata = []
+
+    for kata in kata_list:
+        kata_data = athlete_data[athlete_data['Kata'] == kata]
+        # Exclure les valeurs de 'Note' nulles ou NaN
+        kata_data = kata_data.dropna(subset=['Note'])
+        if not kata_data.empty:
+            avg_note = kata_data['Note'].mean()
+        else:
+            avg_note = None
+        average_notes_kata.append(avg_note)
+
+    # Préparer les données pour le diagramme de Kiviat
+    df_kiviat_kata = pd.DataFrame({
+        'Kata': kata_list,
+        'Moyenne_Note': average_notes_kata
+    })
+
+    # Supprimer les Katas sans moyenne de note
+    df_kiviat_kata = df_kiviat_kata.dropna(subset=['Moyenne_Note'])
+
+    # Vérifier qu'il y a des données à afficher
+    if df_kiviat_kata.empty:
+        st.warning("Aucune donnée de note disponible pour les Katas.")
+    else:
+        # Définir le range radial
+        min_note_kata = 35.0
+        max_note_kata = 50.0
+
+        # Créer le diagramme de Kiviat
+        fig_kiviat_kata = go.Figure()
+
+        fig_kiviat_kata.add_trace(go.Scatterpolar(
+            r=df_kiviat_kata['Moyenne_Note'],
+            theta=df_kiviat_kata['Kata'],
+            fill='toself',
+            name='Moyenne des Notes'
+        ))
+
+        # Mise en page du graphique
+        fig_kiviat_kata.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[min_note_kata, max_note_kata]
+                )
+            ),
+            showlegend=False,
+            title="Moyenne des notes par Kata"
+        )
+
+    # Disposition en colonnes pour les diagrammes de Kiviat
+    col_kiviat1, col_kiviat2 = st.columns(2)
+
+    with col_kiviat1:
+        if not df_kiviat_tour.empty:
+            st.plotly_chart(fig_kiviat_tour, use_container_width=True)
+
+    with col_kiviat2:
+        if not df_kiviat_kata.empty:
+            st.plotly_chart(fig_kiviat_kata, use_container_width=True)
+
 
 # Fonction pour ajouter le pied de page
 def add_footer():
