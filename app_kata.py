@@ -324,7 +324,7 @@ with tab3:
 
     # Créer la variable "Type de Tour" sans la modalité 'Autre'
     def create_type_de_tour(row):
-        if row['N_Tour'] in ['Bronze', 'Finale']:
+        if row['N_Tour'] in ['Bronze', 'Final']:
             return 'Match de médaille'
         elif row['N_Tour'] in ['R1', 'R2']:
             return 'Quart (R1), Demi (R2)'
@@ -593,7 +593,7 @@ with tab4:
             'R1': 2,
             'R2': 3,
             'Bronze': 4,
-            'Finale': 5
+            'Final': 5
         }
 
         tour_names = {
@@ -601,7 +601,7 @@ with tab4:
             2: 'Quart de finale',
             3: 'Demi finale',
             4: 'Place de 3',
-            5: 'Finale'
+            5: 'Final'
         }
 
         # Ajouter une colonne avec le niveau numérique du tour
@@ -626,7 +626,7 @@ with tab4:
         fig.update_yaxes(
             tickmode='array',
             tickvals=[1, 2, 3, 4, 5],
-            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
         )
 
         # Ajouter les labels sur les barres
@@ -679,7 +679,7 @@ with tab4:
     note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
 
     # Calculer la moyenne des notes par N_Tour
-    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Finale']
+    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Final']
     average_notes = []
 
     for tour in n_tour_levels:
