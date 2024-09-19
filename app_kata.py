@@ -324,7 +324,7 @@ with tab3:
 
     # Créer la variable "Type de Tour" sans la modalité 'Autre'
     def create_type_de_tour(row):
-        if row['N_Tour'] in ['Bronze', 'Final']:
+        if row['N_Tour'] in ['Bronze', 'Finale']:
             return 'Match de médaille'
         elif row['N_Tour'] in ['R1', 'R2']:
             return 'Quart (R1), Demi (R2)'
@@ -545,27 +545,38 @@ with tab4:
     # Filtrer les données pour l'athlète sélectionné
     athlete_data = data[data['Nom'] == selected_athlete]
 
-    # Extraire les informations
-    sexe = athlete_data['Sexe'].mode()[0] if not athlete_data['Sexe'].mode().empty else "Non spécifié"
-    age_mean = athlete_data['Age'].mean()
-    ranking_min = athlete_data['Ranking'].min()
-    ranking_max = athlete_data['Ranking'].max()
-    nation = athlete_data['Nation'].mode()[0] if not athlete_data['Nation'].mode().empty else "Non spécifié"
-    style = athlete_data['Style'].mode()[0] if not athlete_data['Style'].mode().empty else "Non spécifié"
+    # Sélectionner l'athlète à comparer
+    compare_options = ["Aucun"] + [name for name in athlete_names if name != selected_athlete]
+    selected_compare_athlete = st.selectbox("Comparer à :", compare_options)
 
-    # Formater le ranking
-    if ranking_min == ranking_max or pd.isna(ranking_min) or pd.isna(ranking_max):
-        ranking_str = f"{ranking_min}" if not pd.isna(ranking_min) else "Non spécifié"
-    else:
-        ranking_str = f"{ranking_min} - {ranking_max}"
+    # Filtrer les données pour l'athlète comparé
+    if selected_compare_athlete != "Aucun":
+        compare_athlete_data = data[data['Nom'] == selected_compare_athlete]
 
-    # Disposition en colonnes
-    col1, col2 = st.columns([1, 2])
+    # Section 1 : Informations des athlètes
+    st.subheader("1. Informations des Athlètes")
 
-    with col1:
-        st.subheader("Informations de l'athlète")
+    # Créer deux colonnes pour afficher les informations côte à côte
+    col_left, col_separator, col_right = st.columns([1, 0.1, 1])
+
+    with col_left:
+        st.markdown(f"### {selected_athlete}")
+
+        # Extraire les informations pour l'athlète principal
+        sexe = athlete_data['Sexe'].mode()[0] if not athlete_data['Sexe'].mode().empty else "Non spécifié"
+        age_mean = athlete_data['Age'].mean()
+        ranking_min = athlete_data['Ranking'].min()
+        ranking_max = athlete_data['Ranking'].max()
+        nation = athlete_data['Nation'].mode()[0] if not athlete_data['Nation'].mode().empty else "Non spécifié"
+        style = athlete_data['Style'].mode()[0] if not athlete_data['Style'].mode().empty else "Non spécifié"
+
+        # Formater le ranking
+        if ranking_min == ranking_max or pd.isna(ranking_min) or pd.isna(ranking_max):
+            ranking_str = f"{ranking_min}" if not pd.isna(ranking_min) else "Non spécifié"
+        else:
+            ranking_str = f"{ranking_min} - {ranking_max}"
+
         st.markdown(f"""
-        - **Nom :** {selected_athlete}
         - **Sexe :** {sexe}
         - **Âge :** {age_mean:.1f} ans
         - **Ranking :** {ranking_str}
@@ -573,36 +584,77 @@ with tab4:
         - **Style :** {style}
         """)
 
-    with col2:
-        # Dictionnaire pour les noms des compétitions
-        competition_names = {
-            'FRA': 'K1 Paris',
-            'TUR': 'K1 Antalya',
-            'EGY': 'K1 Cairo',
-            'MAR': 'K1 Casablanca'
-        }
+    with col_separator:
+        if selected_compare_athlete != "Aucun":
+            st.markdown("<div style='border-left:1px solid gray;height:100%;'></div>", unsafe_allow_html=True)
+
+    with col_right:
+        if selected_compare_athlete != "Aucun":
+            st.markdown(f"### {selected_compare_athlete}")
+
+            # Extraire les informations pour l'athlète comparé
+            sexe_comp = compare_athlete_data['Sexe'].mode()[0] if not compare_athlete_data['Sexe'].mode().empty else "Non spécifié"
+            age_mean_comp = compare_athlete_data['Age'].mean()
+            ranking_min_comp = compare_athlete_data['Ranking'].min()
+            ranking_max_comp = compare_athlete_data['Ranking'].max()
+            nation_comp = compare_athlete_data['Nation'].mode()[0] if not compare_athlete_data['Nation'].mode().empty else "Non spécifié"
+            style_comp = compare_athlete_data['Style'].mode()[0] if not compare_athlete_data['Style'].mode().empty else "Non spécifié"
+
+            # Formater le ranking
+            if ranking_min_comp == ranking_max_comp or pd.isna(ranking_min_comp) or pd.isna(ranking_max_comp):
+                ranking_str_comp = f"{ranking_min_comp}" if not pd.isna(ranking_min_comp) else "Non spécifié"
+            else:
+                ranking_str_comp = f"{ranking_min_comp} - {ranking_max_comp}"
+
+            st.markdown(f"""
+            - **Sexe :** {sexe_comp}
+            - **Âge :** {age_mean_comp:.1f} ans
+            - **Ranking :** {ranking_str_comp}
+            - **Nationalité :** {nation_comp}
+            - **Style :** {style_comp}
+            """)
+        else:
+            st.markdown("<p style='font-size:12px;color:gray;'>Aucun athlète comparé sélectionné</p>",
+            unsafe_allow_html=True
+        )
+
+    # Section 2 : Tour maximal atteint par compétition
+    st.subheader("2. Tour maximal atteint par compétition")
+
+    # Préparer les dictionnaires pour les compétitions et les tours
+    competition_names = {
+        'FRA': 'K1 Paris',
+        'TUR': 'K1 Antalya',
+        'EGY': 'K1 Cairo',
+        'MAR': 'K1 Casablanca'
+    }
+
+    tour_levels = {
+        'Pool_1': 1,
+        'Pool_2': 1,
+        'Pool_3': 1,
+        'R1': 2,
+        'R2': 3,
+        'Bronze': 4,
+        'Finale': 5
+    }
+
+    tour_names = {
+        1: 'Poule',
+        2: 'Quart de finale',
+        3: 'Demi finale',
+        4: 'Place de 3',
+        5: 'Finale'
+    }
+
+    # Créer deux colonnes pour les graphiques
+    col_left, col_separator, col_right = st.columns([1, 0.1, 1])
+
+    with col_left:
+        st.markdown(f"### {selected_athlete}")
 
         # Ajouter une colonne avec le nom de la compétition
         athlete_data['Compétition'] = athlete_data['Pays_compet'].map(competition_names)
-
-        # Dictionnaire pour les niveaux de tours
-        tour_levels = {
-            'Pool_1': 1,
-            'Pool_2': 1,
-            'Pool_3': 1,
-            'R1': 2,
-            'R2': 3,
-            'Bronze': 4,
-            'Final': 5
-        }
-
-        tour_names = {
-            1: 'Poule',
-            2: 'Quart de finale',
-            3: 'Demi finale',
-            4: 'Place de 3',
-            5: 'Final'
-        }
 
         # Ajouter une colonne avec le niveau numérique du tour
         athlete_data['Niveau_Tour'] = athlete_data['N_Tour'].map(tour_levels)
@@ -611,7 +663,6 @@ with tab4:
         max_tours = athlete_data.groupby('Compétition')['Niveau_Tour'].max().reset_index()
         max_tours['Tour_Max'] = max_tours['Niveau_Tour'].map(tour_names)
 
-        st.subheader("Tour maximal atteint par compétition")
         # Créer le graphique
         fig = px.bar(
             max_tours,
@@ -619,185 +670,409 @@ with tab4:
             y='Niveau_Tour',
             text='Tour_Max',
             labels={'Niveau_Tour': 'Tour maximal atteint'},
-            range_y=[0, 5.5]  # Pour inclure tous les niveaux
+            range_y=[0, 5.5]
         )
 
         # Personnaliser les axes
         fig.update_yaxes(
             tickmode='array',
             tickvals=[1, 2, 3, 4, 5],
-            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
         )
 
-        # Ajouter les labels sur les barres
         fig.update_traces(textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)    
 
-        # Afficher le graphique
-        st.plotly_chart(fig, use_container_width=True)
+    with col_separator:
+        if selected_compare_athlete != "Aucun":
+            st.markdown("<div style='border-left:1px solid gray;height:100%;'></div>", unsafe_allow_html=True)
+
+    with col_right:
+        if selected_compare_athlete != "Aucun":
+            st.markdown(f"### {selected_compare_athlete}")
+
+            # Ajouter une colonne avec le nom de la compétition
+            compare_athlete_data['Compétition'] = compare_athlete_data['Pays_compet'].map(competition_names)
+
+            # Ajouter une colonne avec le niveau numérique du tour
+            compare_athlete_data['Niveau_Tour'] = compare_athlete_data['N_Tour'].map(tour_levels)
+
+            # Calculer le tour maximal atteint par compétition
+            max_tours_comp = compare_athlete_data.groupby('Compétition')['Niveau_Tour'].max().reset_index()
+            max_tours_comp['Tour_Max'] = max_tours_comp['Niveau_Tour'].map(tour_names)
+
+            # Créer le graphique
+            fig_comp = px.bar(
+                max_tours_comp,
+                x='Compétition',
+                y='Niveau_Tour',
+                text='Tour_Max',
+                labels={'Niveau_Tour': 'Tour maximal atteint'},
+                range_y=[0, 5.5]
+            )
+
+            # Personnaliser les axes
+            fig_comp.update_yaxes(
+                tickmode='array',
+                tickvals=[1, 2, 3, 4, 5],
+                ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
+            )
+
+            fig_comp.update_traces(textposition='outside')
+            st.plotly_chart(fig_comp, use_container_width=True)
+        else:
+            st.markdown("<p style='font-size:12px;color:gray;'>Aucun athlète comparé sélectionné</p>",
+            unsafe_allow_html=True
+        )
 
     # Section 3 : Histogramme des Katas effectués
     st.subheader("3. Histogramme des Katas effectués")
 
     # Sélectionner les tours pour le filtre
-    tour_options = athlete_data['N_Tour'].dropna().unique().tolist()
+    if selected_compare_athlete != "Aucun":
+        tour_options = sorted(set(athlete_data['N_Tour'].dropna().unique()).union(compare_athlete_data['N_Tour'].dropna().unique()))
+    else:
+        tour_options = athlete_data['N_Tour'].dropna().unique().tolist()
+
     selected_tours = st.multiselect("Filtrer par tour (N_Tour)", options=tour_options, default=tour_options)
 
-    # Filtrer les données en fonction des tours sélectionnés
-    kata_data = athlete_data[athlete_data['N_Tour'].isin(selected_tours)]
+    # Créer deux colonnes pour les histogrammes
+    col_left, col_separator, col_right = st.columns([1, 0.1, 1])
 
-    # Compter les Katas
-    kata_counts = kata_data['Kata'].value_counts().reset_index()
-    kata_counts.columns = ['Kata', 'Nombre']
+    with col_left:
+        st.markdown(f"### {selected_athlete}")
 
-    # Ne conserver que les Katas avec un count > 0
-    kata_counts = kata_counts[kata_counts['Nombre'] > 0]
+        # Filtrer les données en fonction des tours sélectionnés
+        kata_data = athlete_data[athlete_data['N_Tour'].isin(selected_tours)]
 
-    # Vérifier qu'il y a des Katas à afficher
-    if kata_counts.empty:
-        st.warning("Aucun Kata à afficher pour les tours sélectionnés.")
-    else:
-        # Créer l'histogramme
-        fig_kata = px.bar(
-            kata_counts,
-            x='Kata',
-            y='Nombre',
-            title='Nombre de Katas effectués',
-            labels={'Nombre': 'Nombre de fois'},
-            text='Nombre'
+        # Compter les Katas
+        kata_counts = kata_data['Kata'].value_counts().reset_index()
+        kata_counts.columns = ['Kata', 'Nombre']
+
+        # Ne conserver que les Katas avec un count > 0
+        kata_counts = kata_counts[kata_counts['Nombre'] > 0]
+
+        # Vérifier qu'il y a des Katas à afficher
+        if kata_counts.empty:
+            st.warning("Aucun Kata à afficher pour les tours sélectionnés.")
+        else:
+            # Créer l'histogramme
+            fig_kata = px.bar(
+                kata_counts,
+                x='Kata',
+                y='Nombre',
+                title='Nombre de Katas effectués',
+                labels={'Nombre': 'Nombre de fois'},
+                text='Nombre'
+            )
+            fig_kata.update_layout(xaxis_title='Kata', yaxis_title='Nombre de fois')
+            fig_kata.update_traces(textposition='outside')
+            st.plotly_chart(fig_kata, use_container_width=True)
+    
+
+    with col_separator:
+        if selected_compare_athlete != "Aucun":
+            st.markdown("<div style='border-left:1px solid gray;height:100%;'></div>", unsafe_allow_html=True)
+
+    with col_right:
+        if selected_compare_athlete != "Aucun":
+            st.markdown(f"### {selected_compare_athlete}")
+
+            # Filtrer les données en fonction des tours sélectionnés
+            kata_data_comp = compare_athlete_data[compare_athlete_data['N_Tour'].isin(selected_tours)]
+
+            # Compter les Katas
+            kata_counts_comp = kata_data_comp['Kata'].value_counts().reset_index()
+            kata_counts_comp.columns = ['Kata', 'Nombre']
+
+            # Ne conserver que les Katas avec un count > 0
+            kata_counts_comp = kata_counts_comp[kata_counts_comp['Nombre'] > 0]
+
+            # Vérifier qu'il y a des Katas à afficher
+            if kata_counts_comp.empty:
+                st.warning("Aucun Kata à afficher pour les tours sélectionnés.")
+            else:
+                # Créer l'histogramme
+                fig_kata_comp = px.bar(
+                    kata_counts_comp,
+                    x='Kata',
+                    y='Nombre',
+                    title='Nombre de Katas effectués',
+                    labels={'Nombre': 'Nombre de fois'},
+                    text='Nombre'
+                )
+                fig_kata_comp.update_layout(xaxis_title='Kata', yaxis_title='Nombre de fois')
+                fig_kata_comp.update_traces(textposition='outside')
+                st.plotly_chart(fig_kata_comp, use_container_width=True)
+        else:
+            st.markdown("<p style='font-size:12px;color:gray;'>Aucun athlète comparé sélectionné</p>",
+            unsafe_allow_html=True
         )
-        fig_kata.update_layout(xaxis_title='Kata', yaxis_title='Nombre de fois')
-        fig_kata.update_traces(textposition='outside')
-        st.plotly_chart(fig_kata, use_container_width=True)
 
-    # Section 4 : Diagramme de Kiviat des notes par N_Tour
+    
+
+    # Section 4 : Diagramme de Kiviat de la moyenne des notes par N_Tour
     st.subheader("4. Diagramme de Kiviat de la moyenne des notes par N_Tour")
+
     # Sélectionner les compétitions pour le filtre
-    competition_options = athlete_data['Pays_compet'].dropna().unique().tolist()
+    if selected_compare_athlete != "Aucun":
+        competition_options = sorted(set(athlete_data['Pays_compet'].dropna().unique()).union(compare_athlete_data['Pays_compet'].dropna().unique()))
+    else:
+        competition_options = athlete_data['Pays_compet'].dropna().unique().tolist()
+
     selected_competitions = st.multiselect("Filtrer par compétition", options=competition_options, default=competition_options)
 
-    # Filtrer les données en fonction des compétitions sélectionnées
-    note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
-
-    # Calculer la moyenne des notes par N_Tour
-    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Final']
+    # Calculer la moyenne des notes par N_Tour pour l'athlète principal
+    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Finale']
     average_notes = []
+
+    note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
 
     for tour in n_tour_levels:
         tour_data = note_data[note_data['N_Tour'] == tour]
-        # Exclure les valeurs de 'Note' nulles ou NaN
         tour_data = tour_data.dropna(subset=['Note'])
         if not tour_data.empty:
             avg_note = tour_data['Note'].mean()
         else:
-            avg_note = None
+            avg_note = 35.0  # Valeur minimale
         average_notes.append(avg_note)
 
-    # Préparer les données pour le diagramme de Kiviat
     df_kiviat_tour = pd.DataFrame({
         'N_Tour': n_tour_levels,
-        'Moyenne_Note': average_notes
+        'Moyenne_Note': average_notes,
+        'Athlète': selected_athlete
     })
 
+    # Calculer la moyenne des notes par N_Tour pour l'athlète comparé
+    if selected_compare_athlete != "Aucun":
+        average_notes_comp = []
 
-    # Supprimer les tours sans moyenne de note
-    df_kiviat_tour = df_kiviat_tour.dropna(subset=['Moyenne_Note'])
+        note_data_comp = compare_athlete_data[compare_athlete_data['Pays_compet'].isin(selected_competitions)]
 
+        for tour in n_tour_levels:
+            tour_data_comp = note_data_comp[note_data_comp['N_Tour'] == tour]
+            tour_data_comp = tour_data_comp.dropna(subset=['Note'])
+            if not tour_data_comp.empty:
+                avg_note_comp = tour_data_comp['Note'].mean()
+            else:
+                avg_note_comp = 35.0  # Valeur minimale
+            average_notes_comp.append(avg_note_comp)
 
-    # Vérifier qu'il y a des données à afficher
-    if df_kiviat_tour.empty:
-        st.warning("Aucune donnée de note disponible pour les tours sélectionnés.")
-    else:
-        # Définir le range radial
-        min_note = 35.0
-        max_note = 50.0
+        df_kiviat_tour_comp = pd.DataFrame({
+            'N_Tour': n_tour_levels,
+            'Moyenne_Note': average_notes_comp,
+            'Athlète': selected_compare_athlete
+        })
 
-        # Créer le diagramme de Kiviat
-        fig_kiviat_tour = go.Figure()
+        # Combiner les deux DataFrames
+        df_kiviat_tour = pd.concat([df_kiviat_tour, df_kiviat_tour_comp], ignore_index=True)
 
+    # Créer le diagramme de Kiviat
+    fig_kiviat_tour = go.Figure()
+
+    # Ajouter la trace pour l'athlète principal
+    fig_kiviat_tour.add_trace(go.Scatterpolar(
+        r=df_kiviat_tour[df_kiviat_tour['Athlète'] == selected_athlete]['Moyenne_Note'],
+        theta=df_kiviat_tour[df_kiviat_tour['Athlète'] == selected_athlete]['N_Tour'],
+        fill='toself',
+        name=selected_athlete
+    ))
+
+    # Ajouter la trace pour l'athlète comparé
+    if selected_compare_athlete != "Aucun":
         fig_kiviat_tour.add_trace(go.Scatterpolar(
-            r=df_kiviat_tour['Moyenne_Note'],
-            theta=df_kiviat_tour['N_Tour'],
+            r=df_kiviat_tour[df_kiviat_tour['Athlète'] == selected_compare_athlete]['Moyenne_Note'],
+            theta=df_kiviat_tour[df_kiviat_tour['Athlète'] == selected_compare_athlete]['N_Tour'],
             fill='toself',
-            name='Moyenne des Notes'
+            name=selected_compare_athlete,
+            line_color='red',  # Définir la couleur en rouge
+            fillcolor='rgba(255, 0, 0, 0.3)'  # Couleur de remplissage rouge avec transparence
         ))
 
-        # Mise en page du graphique
-        fig_kiviat_tour.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[min_note, max_note]
-                )
-            ),
-            showlegend=False,
-            title="Moyenne des notes par N_Tour"
-        )
+    # Définir le range radial
+    min_note = 35.0
+    max_note = 50.0
+
+    # Mise en page du graphique
+    fig_kiviat_tour.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[min_note, max_note]
+            )
+        ),
+        showlegend=True,
+        title="Moyenne des notes par N_Tour"
+    )
+
+    # Afficher le diagramme
+    st.plotly_chart(fig_kiviat_tour, use_container_width=True)
+
+
+
 
     # Section 5 : Diagramme de Kiviat des notes par Kata
     st.subheader("5. Diagramme de Kiviat de la moyenne des notes par Kata")
-    # Calculer la moyenne des notes par Kata
-    kata_list = athlete_data['Kata'].dropna().unique().tolist()
+
+    # Obtenir la liste des Katas pour les deux athlètes
+    if selected_compare_athlete != "Aucun":
+        kata_list = sorted(set(athlete_data['Kata'].dropna().unique()).union(compare_athlete_data['Kata'].dropna().unique()))
+    else:
+        kata_list = athlete_data['Kata'].dropna().unique().tolist()
+
+    # Calculer la moyenne des notes par Kata pour l'athlète principal
     average_notes_kata = []
 
     for kata in kata_list:
         kata_data = athlete_data[athlete_data['Kata'] == kata]
-        # Exclure les valeurs de 'Note' nulles ou NaN
         kata_data = kata_data.dropna(subset=['Note'])
         if not kata_data.empty:
             avg_note = kata_data['Note'].mean()
         else:
-            avg_note = None
+            avg_note = 35.0  # Valeur minimale
         average_notes_kata.append(avg_note)
 
-    # Préparer les données pour le diagramme de Kiviat
     df_kiviat_kata = pd.DataFrame({
         'Kata': kata_list,
-        'Moyenne_Note': average_notes_kata
+        'Moyenne_Note': average_notes_kata,
+        'Athlète': selected_athlete
     })
 
-    # Supprimer les Katas sans moyenne de note
-    df_kiviat_kata = df_kiviat_kata.dropna(subset=['Moyenne_Note'])
+    # Calculer la moyenne des notes par Kata pour l'athlète comparé
+    if selected_compare_athlete != "Aucun":
+        average_notes_kata_comp = []
 
-    # Vérifier qu'il y a des données à afficher
-    if df_kiviat_kata.empty:
-        st.warning("Aucune donnée de note disponible pour les Katas.")
-    else:
-        # Définir le range radial
-        min_note_kata = 35.0
-        max_note_kata = 50.0
+        for kata in kata_list:
+            kata_data_comp = compare_athlete_data[compare_athlete_data['Kata'] == kata]
+            kata_data_comp = kata_data_comp.dropna(subset=['Note'])
+            if not kata_data_comp.empty:
+                avg_note_comp = kata_data_comp['Note'].mean()
+            else:
+                avg_note_comp = 35.0  # Valeur minimale
+            average_notes_kata_comp.append(avg_note_comp)
 
-        # Créer le diagramme de Kiviat
-        fig_kiviat_kata = go.Figure()
+        df_kiviat_kata_comp = pd.DataFrame({
+            'Kata': kata_list,
+            'Moyenne_Note': average_notes_kata_comp,
+            'Athlète': selected_compare_athlete
+        })
 
+        # Combiner les deux DataFrames
+        df_kiviat_kata = pd.concat([df_kiviat_kata, df_kiviat_kata_comp], ignore_index=True)
+
+    # Créer le diagramme de Kiviat
+    fig_kiviat_kata = go.Figure()
+
+    # Ajouter la trace pour l'athlète principal
+    fig_kiviat_kata.add_trace(go.Scatterpolar(
+        r=df_kiviat_kata[df_kiviat_kata['Athlète'] == selected_athlete]['Moyenne_Note'],
+        theta=df_kiviat_kata[df_kiviat_kata['Athlète'] == selected_athlete]['Kata'],
+        fill='toself',
+        name=selected_athlete
+    ))
+
+    # Ajouter la trace pour l'athlète comparé
+    if selected_compare_athlete != "Aucun":
         fig_kiviat_kata.add_trace(go.Scatterpolar(
-            r=df_kiviat_kata['Moyenne_Note'],
-            theta=df_kiviat_kata['Kata'],
+            r=df_kiviat_kata[df_kiviat_kata['Athlète'] == selected_compare_athlete]['Moyenne_Note'],
+            theta=df_kiviat_kata[df_kiviat_kata['Athlète'] == selected_compare_athlete]['Kata'],
             fill='toself',
-            name='Moyenne des Notes'
+            name=selected_compare_athlete,
+            line_color='red',  # Définir la couleur en rouge
+            fillcolor='rgba(255, 0, 0, 0.3)'  # Couleur de remplissage rouge avec transparence
         ))
 
-        # Mise en page du graphique
-        fig_kiviat_kata.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[min_note_kata, max_note_kata]
-                )
-            ),
-            showlegend=False,
-            title="Moyenne des notes par Kata"
-        )
+    # Définir le range radial
+    min_note_kata = 35.0
+    max_note_kata = 50.0
 
-    # Disposition en colonnes pour les diagrammes de Kiviat
-    col_kiviat1, col_kiviat2 = st.columns(2)
+    # Mise en page du graphique
+    fig_kiviat_kata.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[min_note_kata, max_note_kata]
+            )
+        ),
+        showlegend=True,
+        title="Moyenne des notes par Kata"
+    )
 
-    with col_kiviat1:
-        if not df_kiviat_tour.empty:
-            st.plotly_chart(fig_kiviat_tour, use_container_width=True)
+    # Afficher le diagramme
+    st.plotly_chart(fig_kiviat_kata, use_container_width=True)
 
-    with col_kiviat2:
-        if not df_kiviat_kata.empty:
-            st.plotly_chart(fig_kiviat_kata, use_container_width=True)
+    # Section 6 : Face à face
+    if selected_compare_athlete != "Aucun":
+        # Fusionner les données pour faciliter la comparaison
+        #data_sorted = data.sort_values(by=['Compétition', 'N_Tour', 'Match_ID'])  # Assurez-vous que les données sont triées correctement
+        #data_sorted.reset_index(drop=True, inplace=True)
+
+        # Créer une liste pour stocker les résultats des affrontements
+        face_to_face_results = []
+
+        for idx, row in data.iterrows():
+            if row['Nom'] == selected_athlete:
+                # Trouver l'adversaire
+                if row['Ceinture'] == 'R':
+                    if idx + 1 < len(data) and data.loc[idx + 1, 'Ceinture'] == 'B':
+                        opponent_row = data.loc[idx + 1]
+                    else:
+                        continue  # Pas d'adversaire correspondant
+                elif row['Ceinture'] == 'B':
+                    if idx - 1 >= 0 and data.loc[idx - 1, 'Ceinture'] == 'R':
+                        opponent_row = data.loc[idx - 1]
+                    else:
+                        continue  # Pas d'adversaire correspondant
+                else:
+                    continue  # Ceinture inconnue
+
+                # Vérifier si l'adversaire est l'athlète comparé
+                if opponent_row['Nom'] == selected_compare_athlete:
+                    # Déterminer le résultat
+                    if row['Victoire'] == 'True' or row['Victoire'] == True:
+                        result = 'Victoire'
+                    else:
+                        result = 'Défaite'
+
+                    face_to_face_results.append({
+                        'Compétition': row['Pays_compet'],
+                        'N_Tour': row['N_Tour'],
+                        'Kata': row['Kata'],
+                        'Note': row['Note'], 
+                        'Kata Adverse': opponent_row['Kata'], 
+                        'Note Adverse': opponent_row['Note'],
+                        'Résultat': result
+                    })
+
+        # Vérifier s'il y a eu des affrontements
+        if face_to_face_results:
+            face_to_face_df = pd.DataFrame(face_to_face_results)
+
+            st.subheader("6. Face à face")
+
+            # Compter les victoires et défaites
+            results_count = face_to_face_df['Résultat'].value_counts().reset_index()
+            results_count.columns = ['Résultat', 'Nombre']
+
+            # Créer le graphique
+            fig_face_to_face = px.bar(
+                results_count,
+                x='Résultat',
+                y='Nombre',
+                title=f"Résultats de {selected_athlete} contre {selected_compare_athlete}",
+                text='Nombre',
+                color='Résultat',
+                color_discrete_map={'Victoire': 'green', 'Défaite': 'red'}
+            )
+            fig_face_to_face.update_traces(textposition='outside')
+            fig_face_to_face.update_layout(xaxis_title='Résultat', yaxis_title='Nombre de matchs')
+            st.plotly_chart(fig_face_to_face, use_container_width=True)
+
+            # Afficher le détail des affrontements
+            st.markdown("**Détails des affrontements :**")
+            st.table(face_to_face_df)
+        else:
+            st.info(f"Aucun affrontement trouvé entre {selected_athlete} et {selected_compare_athlete}.")
 
 
 # Fonction pour ajouter le pied de page
