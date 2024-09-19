@@ -636,7 +636,7 @@ with tab4:
         'R1': 2,
         'R2': 3,
         'Bronze': 4,
-        'Finale': 5
+        'Final': 5
     }
 
     tour_names = {
@@ -644,7 +644,7 @@ with tab4:
         2: 'Quart de finale',
         3: 'Demi finale',
         4: 'Place de 3',
-        5: 'Finale'
+        5: 'Final'
     }
 
     # Créer deux colonnes pour les graphiques
@@ -677,7 +677,7 @@ with tab4:
         fig.update_yaxes(
             tickmode='array',
             tickvals=[1, 2, 3, 4, 5],
-            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
         )
 
         fig.update_traces(textposition='outside')
@@ -715,7 +715,7 @@ with tab4:
             fig_comp.update_yaxes(
                 tickmode='array',
                 tickvals=[1, 2, 3, 4, 5],
-                ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Finale']
+                ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
             )
 
             fig_comp.update_traces(textposition='outside')
@@ -823,7 +823,7 @@ with tab4:
     selected_competitions = st.multiselect("Filtrer par compétition", options=competition_options, default=competition_options)
 
     # Calculer la moyenne des notes par N_Tour pour l'athlète principal
-    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Finale']
+    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Final']
     average_notes = []
 
     note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
