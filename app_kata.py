@@ -81,6 +81,21 @@ with tab1:
 with tab2:
     st.header("Générateur de Graphiques Interactifs")
 
+    # Pré-filtre sur 'Type_Compet'
+    type_compet_options = ["Tous", "Premier League (K1)", "Series A (SA)"]
+    selected_type_compet = st.radio("Sélectionnez le type de compétition", type_compet_options, key = "clic_graph")
+
+    # Filtrer les données en fonction du 'Type_Compet' sélectionné
+    if selected_type_compet != "Tous":
+        if selected_type_compet == "Premier League (K1)":
+            data_compet = data[data['Type_Compet'] == 'K1']
+        elif selected_type_compet == "Series A (SA)":
+            data_compet = data[data['Type_Compet'] == 'SA']
+    else:
+        data_compet = data.copy()
+
+    #data = data_compet
+
     st.markdown("""
     ### Comment utiliser les graphiques interactifs :
 
@@ -92,7 +107,7 @@ with tab2:
 
     # Séparer les variables numériques et catégorielles
     variables_numeriques = ['Age', 'Ranking', 'Note']
-    variables_categorielles = [col for col in data.columns if col not in variables_numeriques]
+    variables_categorielles = [col for col in data_compet.columns if col not in variables_numeriques]
 
     st.subheader("Sélection des variables pour les axes")
 
@@ -115,11 +130,11 @@ with tab2:
         # Option pour filtrer sur une variable catégorielle
         filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
         if filtre_var != "Aucune":
-            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites = data_compet[filtre_var].dropna().unique().tolist()
             modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
-            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+            data_filtered = data_compet[data_compet[filtre_var].isin(modalites_selectionnees)]
         else:
-            data_filtered = data
+            data_filtered = data_compet
 
         data_filtered = data_filtered[data_filtered[y_num].notna()]
 
@@ -154,11 +169,11 @@ with tab2:
         # Option pour filtrer sur une troisième variable catégorielle
         filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
         if filtre_var != "Aucune":
-            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites = data_compet[filtre_var].dropna().unique().tolist()
             modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
-            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+            data_filtered = data_compet[data_compet[filtre_var].isin(modalites_selectionnees)]
         else:
-            data_filtered = data
+            data_filtered = data_compet
 
         data_filtered = data_filtered[data_filtered[y_num].notna()]
 
@@ -202,11 +217,11 @@ with tab2:
         filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
 
         if filtre_var != "Aucune":
-            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites = data_compet[filtre_var].dropna().unique().tolist()
             modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
-            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+            data_filtered = data_compet[data_compet[filtre_var].isin(modalites_selectionnees)]
         else:
-            data_filtered = data
+            data_filtered = data_compet
 
         # Histogramme des effectifs
         st.markdown(f"**Histogramme des effectifs de chaque modalité de {y_cat}**")
@@ -230,11 +245,11 @@ with tab2:
         filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
 
         if filtre_var != "Aucune":
-            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites = data_compet[filtre_var].dropna().unique().tolist()
             modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
-            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+            data_filtered = data_compet[data_compet[filtre_var].isin(modalites_selectionnees)]
         else:
-            data_filtered = data
+            data_filtered = data_compet
 
         # Calculer le tableau croisé des proportions
         crosstab = pd.crosstab(data_filtered[x_cat], data_filtered[y_cat], normalize='index')
@@ -270,11 +285,11 @@ with tab2:
         # Option pour filtrer sur une variable catégorielle
         filtre_var = st.selectbox("Sélectionnez une variable catégorielle pour filtrer (optionnel)", ["Aucune"] + variables_categorielles)
         if filtre_var != "Aucune":
-            modalites = data[filtre_var].dropna().unique().tolist()
+            modalites = data_compet[filtre_var].dropna().unique().tolist()
             modalites_selectionnees = st.multiselect(f"Filtrer les modalités de {filtre_var}", modalites, default=modalites)
-            data_filtered = data[data[filtre_var].isin(modalites_selectionnees)]
+            data_filtered = data_compet[data_compet[filtre_var].isin(modalites_selectionnees)]
         else:
-            data_filtered = data
+            data_filtered = data_compet
 
         data_filtered = data_filtered[data_filtered[x_num].notna() & data_filtered[y_num].notna()]
 
@@ -322,29 +337,43 @@ with tab3:
     # Créer une copie des données pour éviter de modifier le DataFrame original
     data_acm = data.copy()
 
+    # Pré-filtre sur 'Type_Compet'
+    type_compet_options = ["Tous", "Premier League (K1)", "Series A (SA)"]
+    selected_type_compet = st.radio("Sélectionnez le type de compétition", type_compet_options, key = "clic_ACM")
+
+    # Filtrer les données en fonction du 'Type_Compet' sélectionné
+    if selected_type_compet != "Tous":
+        if selected_type_compet == "Premier League (K1)":
+            data_acm_filtered = data_acm[data_acm['Type_Compet'] == 'K1']
+        elif selected_type_compet == "Series A (SA)":
+            data_acm_filtered = data_acm[data_acm['Type_Compet'] == 'SA']
+    else:
+        data_acm_filtered = data_acm.copy()
+
+
     # Créer la variable "Type de Tour" sans la modalité 'Autre'
     def create_type_de_tour(row):
         if row['N_Tour'] in ['Bronze', 'Finale']:
             return 'Match de médaille'
-        elif row['N_Tour'] in ['R1', 'R2']:
+        elif row['N_Tour'] in ['R1', 'R2', 'PW1','PW2', 'PW3']:
             return 'Quart (R1), Demi (R2)'
-        elif row['N_Tour'] in ['Pool_1']:
+        elif row['N_Tour'] in ['Pool_1', 'T1']:
             return 'Tour1'
-        elif row['N_Tour'] in ['Pool_2']:
+        elif row['N_Tour'] in ['Pool_2', 'T2']:
             return 'Tour2'
-        elif row['N_Tour'] in ['Pool_3']:
+        elif row['N_Tour'] in ['Pool_3', 'T3']:
             return 'Tour3'
         else:
             return None  # Retourne None au lieu de 'Autre'
 
     # Appliquer la fonction pour créer "Type de Tour"
-    data_acm['Type de Tour'] = data_acm.apply(create_type_de_tour, axis=1)
+    data_acm_filtered['Type de Tour'] = data_acm_filtered.apply(create_type_de_tour, axis=1)
 
     # Supprimer les lignes où "Type de Tour" est None
-    data_acm = data_acm.dropna(subset=['Type de Tour'])
+    data_acm_filtered = data_acm_filtered.dropna(subset=['Type de Tour'])
 
     # Filtrage sur "Type de Tour"
-    type_de_tour_modalities = data_acm['Type de Tour'].unique().tolist()
+    type_de_tour_modalities = data_acm_filtered['Type de Tour'].unique().tolist()
     selected_types = st.multiselect(
         "Sélectionnez le(s) Type(s) de Tour à inclure dans l'ACM",
         type_de_tour_modalities,
@@ -352,7 +381,7 @@ with tab3:
     )
 
     if selected_types:
-        data_acm_filtered = data_acm[data_acm['Type de Tour'].isin(selected_types)]
+        data_acm_filtered = data_acm_filtered[data_acm_filtered['Type de Tour'].isin(selected_types)]
     else:
         st.warning("Aucun 'Type de Tour' sélectionné. Veuillez en sélectionner au moins un.")
         st.stop()
@@ -535,15 +564,35 @@ with tab3:
 with tab4:
     st.header("Focus Athlète")
 
+    # Pré-filtre sur 'Type_Compet'
+    type_compet_options = ["Tous", "Premier League (K1)", "Series A (SA)"]
+    selected_type_compet = st.radio("Sélectionnez le type de compétition", type_compet_options, key = "clic_athlete")
+
+    # Filtrer les données en fonction du 'Type_Compet' sélectionné
+    if selected_type_compet != "Tous":
+        if selected_type_compet == "Premier League (K1)":
+            data_athlete = data[data['Type_Compet'] == 'K1']
+        elif selected_type_compet == "Series A (SA)":
+            data_athlete = data[data['Type_Compet'] == 'SA']
+    else:
+        data_athlete = data.copy()
+
+     # Pré-filtre sur 'Sexe'
+    sexe_options = data_athlete['Sexe'].dropna().unique().tolist()
+    selected_sexe = st.radio("Sélectionnez le sexe des athlètes", sexe_options, key = "clic_sexe")
+
+    # Filtrer les données en fonction du 'Sexe' sélectionné
+    data_athlete = data_athlete[data_athlete['Sexe'] == selected_sexe]
+
     # Obtenir la liste des athlètes uniques
-    athlete_names = data['Nom'].dropna().unique().tolist()
+    athlete_names = data_athlete['Nom'].dropna().unique().tolist()
     athlete_names.sort()  # Trier les noms pour une meilleure expérience utilisateur
 
     # Sélectionner un athlète
     selected_athlete = st.selectbox("Sélectionnez un athlète", athlete_names)
 
     # Filtrer les données pour l'athlète sélectionné
-    athlete_data = data[data['Nom'] == selected_athlete]
+    athlete_data = data_athlete[data_athlete['Nom'] == selected_athlete]
 
     # Sélectionner l'athlète à comparer
     compare_options = ["Aucun"] + [name for name in athlete_names if name != selected_athlete]
@@ -551,7 +600,7 @@ with tab4:
 
     # Filtrer les données pour l'athlète comparé
     if selected_compare_athlete != "Aucun":
-        compare_athlete_data = data[data['Nom'] == selected_compare_athlete]
+        compare_athlete_data = data_athlete[data_athlete['Nom'] == selected_compare_athlete]
 
     # Section 1 : Informations des athlètes
     st.subheader("1. Informations des Athlètes")
@@ -622,12 +671,6 @@ with tab4:
     st.subheader("2. Tour maximal atteint par compétition")
 
     # Préparer les dictionnaires pour les compétitions et les tours
-    competition_names = {
-        'FRA': 'K1 Paris',
-        'TUR': 'K1 Antalya',
-        'EGY': 'K1 Cairo',
-        'MAR': 'K1 Casablanca'
-    }
 
     tour_levels = {
         'Pool_1': 1,
@@ -636,7 +679,13 @@ with tab4:
         'R1': 2,
         'R2': 3,
         'Bronze': 4,
-        'Final': 5
+        'Final': 5,
+        'T1' : 6,
+        'T2' : 7,
+        'T3' : 8,
+        'PW1' : 9,
+        'PW2' : 2,
+        'PW3' : 3
     }
 
     tour_names = {
@@ -644,7 +693,11 @@ with tab4:
         2: 'Quart de finale',
         3: 'Demi finale',
         4: 'Place de 3',
-        5: 'Final'
+        5: 'Final', 
+        6: '1er Tour',
+        7: '2eme Tour',
+        8: '3eme Tour',
+        9: 'Vainqueur de poule'
     }
 
     # Créer deux colonnes pour les graphiques
@@ -654,7 +707,9 @@ with tab4:
         st.markdown(f"### {selected_athlete}")
 
         # Ajouter une colonne avec le nom de la compétition
-        athlete_data['Compétition'] = athlete_data['Pays_compet'].map(competition_names)
+        # Suppression du mapping, utiliser directement 
+        athlete_data['Compétition'] = athlete_data['Competition']
+
 
         # Ajouter une colonne avec le niveau numérique du tour
         athlete_data['Niveau_Tour'] = athlete_data['N_Tour'].map(tour_levels)
@@ -676,8 +731,8 @@ with tab4:
         # Personnaliser les axes
         fig.update_yaxes(
             tickmode='array',
-            tickvals=[1, 2, 3, 4, 5],
-            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
+            tickvals=[1, 2, 3, 4, 5, 6, 7, 8, 9],
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final', '1er Tour', '2eme Tour', '3eme Tour', 'Vainqueur de poule']
         )
 
         fig.update_traces(textposition='outside')
@@ -692,7 +747,7 @@ with tab4:
             st.markdown(f"### {selected_compare_athlete}")
 
             # Ajouter une colonne avec le nom de la compétition
-            compare_athlete_data['Compétition'] = compare_athlete_data['Pays_compet'].map(competition_names)
+            compare_athlete_data['Compétition'] = compare_athlete_data['Competition']
 
             # Ajouter une colonne avec le niveau numérique du tour
             compare_athlete_data['Niveau_Tour'] = compare_athlete_data['N_Tour'].map(tour_levels)
@@ -714,8 +769,8 @@ with tab4:
             # Personnaliser les axes
             fig_comp.update_yaxes(
                 tickmode='array',
-                tickvals=[1, 2, 3, 4, 5],
-                ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final']
+                tickvals=[1, 2, 3, 4, 5, 6, 7, 8, 9],
+            ticktext=['Poule', 'Quart de finale', 'Demi finale', 'Place de 3', 'Final', '1er Tour', '2eme Tour', '3eme Tour', 'Vainqueur de poule']
             )
 
             fig_comp.update_traces(textposition='outside')
@@ -816,17 +871,17 @@ with tab4:
 
     # Sélectionner les compétitions pour le filtre
     if selected_compare_athlete != "Aucun":
-        competition_options = sorted(set(athlete_data['Pays_compet'].dropna().unique()).union(compare_athlete_data['Pays_compet'].dropna().unique()))
+        competition_options = sorted(set(athlete_data['Competition'].dropna().unique()).union(compare_athlete_data['Competition'].dropna().unique()))
     else:
-        competition_options = athlete_data['Pays_compet'].dropna().unique().tolist()
+        competition_options = athlete_data['Competition'].dropna().unique().tolist()
 
     selected_competitions = st.multiselect("Filtrer par compétition", options=competition_options, default=competition_options)
 
     # Calculer la moyenne des notes par N_Tour pour l'athlète principal
-    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Final']
+    n_tour_levels = ['Pool_1', 'Pool_2', 'Pool_3', 'R1', 'R2', 'Bronze', 'Final', 'T1', 'T2', 'T3', 'PW1', 'PW2', 'PW3']
     average_notes = []
 
-    note_data = athlete_data[athlete_data['Pays_compet'].isin(selected_competitions)]
+    note_data = athlete_data[athlete_data['Competition'].isin(selected_competitions)]
 
     for tour in n_tour_levels:
         tour_data = note_data[note_data['N_Tour'] == tour]
@@ -834,7 +889,7 @@ with tab4:
         if not tour_data.empty:
             avg_note = tour_data['Note'].mean()
         else:
-            avg_note = 35.0  # Valeur minimale
+            avg_note = 30.0  # Valeur minimale
         average_notes.append(avg_note)
 
     df_kiviat_tour = pd.DataFrame({
@@ -847,7 +902,7 @@ with tab4:
     if selected_compare_athlete != "Aucun":
         average_notes_comp = []
 
-        note_data_comp = compare_athlete_data[compare_athlete_data['Pays_compet'].isin(selected_competitions)]
+        note_data_comp = compare_athlete_data[compare_athlete_data['Competition'].isin(selected_competitions)]
 
         for tour in n_tour_levels:
             tour_data_comp = note_data_comp[note_data_comp['N_Tour'] == tour]
@@ -855,7 +910,7 @@ with tab4:
             if not tour_data_comp.empty:
                 avg_note_comp = tour_data_comp['Note'].mean()
             else:
-                avg_note_comp = 35.0  # Valeur minimale
+                avg_note_comp = 30.0  # Valeur minimale
             average_notes_comp.append(avg_note_comp)
 
         df_kiviat_tour_comp = pd.DataFrame({
@@ -890,8 +945,8 @@ with tab4:
         ))
 
     # Définir le range radial
-    min_note = 35.0
-    max_note = 50.0
+    min_note = 30.0
+    max_note = 47.0
 
     # Mise en page du graphique
     fig_kiviat_tour.update_layout(
@@ -929,7 +984,7 @@ with tab4:
         if not kata_data.empty:
             avg_note = kata_data['Note'].mean()
         else:
-            avg_note = 35.0  # Valeur minimale
+            avg_note = 30.0  # Valeur minimale
         average_notes_kata.append(avg_note)
 
     df_kiviat_kata = pd.DataFrame({
@@ -948,7 +1003,7 @@ with tab4:
             if not kata_data_comp.empty:
                 avg_note_comp = kata_data_comp['Note'].mean()
             else:
-                avg_note_comp = 35.0  # Valeur minimale
+                avg_note_comp = 30.0  # Valeur minimale
             average_notes_kata_comp.append(avg_note_comp)
 
         df_kiviat_kata_comp = pd.DataFrame({
@@ -983,8 +1038,8 @@ with tab4:
         ))
 
     # Définir le range radial
-    min_note_kata = 35.0
-    max_note_kata = 50.0
+    min_note_kata = 30.0
+    max_note_kata = 47.0
 
     # Mise en page du graphique
     fig_kiviat_kata.update_layout(
@@ -1014,13 +1069,13 @@ with tab4:
             if row['Nom'] == selected_athlete:
                 # Trouver l'adversaire
                 if row['Ceinture'] == 'R':
-                    if idx + 1 < len(data) and data.loc[idx + 1, 'Ceinture'] == 'B':
-                        opponent_row = data.loc[idx + 1]
+                    if idx + 1 < len(data_athlete) and data_athlete.loc[idx + 1, 'Ceinture'] == 'B':
+                        opponent_row = data_athlete.loc[idx + 1]
                     else:
                         continue  # Pas d'adversaire correspondant
                 elif row['Ceinture'] == 'B':
-                    if idx - 1 >= 0 and data.loc[idx - 1, 'Ceinture'] == 'R':
-                        opponent_row = data.loc[idx - 1]
+                    if idx - 1 >= 0 and data_athlete.loc[idx - 1, 'Ceinture'] == 'R':
+                        opponent_row = data_athlete.loc[idx - 1]
                     else:
                         continue  # Pas d'adversaire correspondant
                 else:
@@ -1035,7 +1090,7 @@ with tab4:
                         result = 'Défaite'
 
                     face_to_face_results.append({
-                        'Compétition': row['Pays_compet'],
+                        'Compétition': row['Competition'],
                         'N_Tour': row['N_Tour'],
                         'Kata': row['Kata'],
                         'Note': row['Note'], 
