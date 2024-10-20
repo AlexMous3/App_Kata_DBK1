@@ -19,8 +19,18 @@ from scipy.stats import f_oneway
 import prince  # Pour l'ACM
 import plotly.graph_objects as go
 import streamlit as st
+import joblib
+import sklearn
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+
 
 #print(prince.__version__)
+
+
 
 
 # %%
@@ -48,7 +58,21 @@ def load_data():
 
 data = load_data()
 
-tab1, tab2, tab3, tab4 = st.tabs(["Dataset", "Générateur de graphiques intéractifs", "ACM", "Focus Athlète"])
+athlete_kata_notes = pd.read_csv('athlete_kata_notes.csv')
+athlete_kata_wins = pd.read_csv('athlete_kata_wins.csv')
+athlete_b_kata_losses = pd.read_csv('athlete_b_kata_losses.csv')
+
+# Charger le modèle mis à jour
+model = joblib.load('proba_victoire_model_updated.pkl')
+
+# Charger les encodeurs
+le_kata = joblib.load('le_kata.pkl')
+le_style = joblib.load('le_style.pkl')
+
+# Charger l'historique des confrontations
+confrontation_history = joblib.load('confrontation_history.pkl')
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Dataset", "Générateur de graphiques intéractifs", "ACM", "Focus Athlète", "Prévision de probabilité de victoires"])
 
 with tab1:
     st.header("Affichage du Dataset de Karaté")
@@ -1128,6 +1152,152 @@ with tab4:
             st.table(face_to_face_df)
         else:
             st.info(f"Aucun affrontement trouvé entre {selected_athlete} et {selected_compare_athlete}.")
+
+with tab5:
+    st.header("Prédiction de la Probabilité de Victoire par Kata")
+
+    st.subheader("Sélection des Athlètes")
+
+    # Liste des noms d'athlètes
+    athlete_names = data['Nom'].dropna().unique().tolist()
+    athlete_names.sort()
+
+    # Sélection de l'Athlète A
+    nom_a = st.selectbox("Sélectionnez l'Athlète A", athlete_names)
+
+    # Récupérer le sexe de l'athlète A
+    sexe_a = data[data['Nom'] == nom_a]['Sexe'].iloc[0]
+
+    # Filtrer les athlètes du même sexe pour l'athlète B
+    athlete_b_names = data[(data['Sexe'] == sexe_a) & (data['Nom'] != nom_a)]['Nom'].unique().tolist()
+    athlete_b_names.sort()
+
+    # Sélection de l'Athlète B
+    nom_b = st.selectbox("Sélectionnez l'Athlète B", athlete_b_names)
+
+    st.subheader(f"Sélection des Katas pour {nom_a}")
+
+    # Récupérer le style de l'athlète A
+    style_a = data[data['Nom'] == nom_a]['Style'].mode().iloc[0]
+
+    # Définir les listes de katas par style
+    katas_shotokan = ['Kanku Dai', 'Jion', 'Enpi', 'Suparinpei', 'Gankaku', 'Unsu', 'Gojushiho_Sho', 'Gojushiho_Dai', 'Sochin', 'Nijushiho', 'Ninjushiho', 'Jitte', 'Sansai', 'Kanku_Sho']
+    katas_shito = ['Anan', 'Papuren', 'Chatanyara_Kushanku', 'Suparinpei', 'Kishimoto_No_Kushanku' 'Chibana_No_Kushanku', 'Anan_Dai', 'Kousoukun_Sho', 'Kousoukun_Dai', 'Kururunfa', 'Heiku', 'Nipaipo', 'Matsumura_Bassai', 'Kyan_No_Chinto', 'Kusanku', 'Oyadomari_No_Passai', 'Ohan', 'Ohan_Dai', 'Paiku', 'Pachu', 'Shisochin', 'Seisan', 'Tomari_Bassai', 'Unshu', 'Ohan ']
+
+    if style_a == 'Shotokan':
+        katas_style = katas_shotokan
+    elif style_a == 'Shito':
+        katas_style = katas_shito
+    else:
+        katas_style = []
+
+    # Récupérer les katas déjà effectués par l'athlète A dans la compétition
+    katas_effectues = data[(data['Nom'] == nom_a)]['Kata'].unique().tolist()
+
+    # Sélection des katas à exclure
+    katas_selectionnes = st.multiselect("Sélectionnez les katas déjà effectués par l'athlète A", options=katas_style, default=katas_effectues)
+
+    # Katas restants
+    katas_restants = [kata for kata in katas_style if kata not in katas_selectionnes]
+
+    # Bouton pour lancer l'analyse
+    if st.button("Calculer les Probabilités de Victoire"):
+        # Initialiser une liste pour stocker les résultats
+        resultats = []
+
+        # Récupérer les informations nécessaires des athlètes
+        # Classement
+        ranking_a = data[data['Nom'] == nom_a]['Ranking'].mean()
+        ranking_b = data[data['Nom'] == nom_b]['Ranking'].mean()
+
+        # Gestion des classements manquants
+        if np.isnan(ranking_a):
+            ranking_a = data['Ranking'].max() + 1
+        if np.isnan(ranking_b):
+            ranking_b = data['Ranking'].max() + 1
+
+        # Nation
+        nation_a = data[data['Nom'] == nom_a]['Nation'].mode().iloc[0]
+        nation_b = data[data['Nom'] == nom_b]['Nation'].mode().iloc[0]
+
+        # Variable Same_Nation
+        same_nation = 1 if nation_a == nation_b else 0
+
+        # Style de l'athlète B
+        style_b = data[data['Nom'] == nom_b]['Style'].mode().iloc[0]
+
+        # Historique des confrontations
+        athletes = tuple(sorted([nom_a, nom_b]))
+        if athletes in confrontation_history:
+            total_matches = confrontation_history[athletes]['Total']
+            wins_a = confrontation_history[athletes]['Wins_A'] if athletes[0] == nom_a else confrontation_history[athletes]['Total'] - confrontation_history[athletes]['Wins_A']
+        else:
+            total_matches = 0
+            wins_a = 0
+
+        # Encodage des styles
+        style_a_encoded = le_style.transform([style_a])[0] if style_a in le_style.classes_ else -1
+        style_b_encoded = le_style.transform([style_b])[0] if style_b in le_style.classes_ else -1
+
+        # Calcul de la différence de classement
+        ranking_diff = ranking_a - ranking_b
+
+        for kata in katas_restants:
+            # Encodage du kata
+            if kata in le_kata.classes_:
+                kata_encoded = le_kata.transform([kata])[0]
+            else:
+                # Ajouter le kata inconnu à l'encodeur
+                le_kata.classes_ = np.append(le_kata.classes_, kata)
+                kata_encoded = le_kata.transform([kata])[0]
+
+            # Note moyenne de l'athlète A avec ce kata
+            a_kata_note = athlete_kata_notes[(athlete_kata_notes['Nom'] == nom_a) & (athlete_kata_notes['Kata'] == kata)]['A_Kata_Note']
+            a_kata_note = a_kata_note.iloc[0] if not a_kata_note.empty else 0
+
+            # Nombre de victoires de l'athlète A avec ce kata
+            a_kata_win_count = athlete_kata_wins[(athlete_kata_wins['Nom'] == nom_a) & (athlete_kata_wins['Kata'] == kata)]['A_Kata_Win_Count']
+            a_kata_win_count = a_kata_win_count.iloc[0] if not a_kata_win_count.empty else 0
+
+            # Nombre de défaites de l'athlète B contre ce kata
+            b_kata_loss_count = athlete_b_kata_losses[(athlete_b_kata_losses['B_Nom'] == nom_b) & (athlete_b_kata_losses['A_Kata'] == kata)]['B_Kata_Loss_Count']
+            b_kata_loss_count = b_kata_loss_count.iloc[0] if not b_kata_loss_count.empty else 0
+
+            # Création du DataFrame d'entrée
+            input_data = pd.DataFrame({
+                'Ranking_Diff': [ranking_diff],
+                'Same_Nation': [same_nation],
+                'A_vs_B_Total': [total_matches],
+                'A_vs_B_Wins': [wins_a],
+                'A_Kata_Encoded': [kata_encoded],
+                'A_Style_Encoded': [style_a_encoded],
+                'B_Style_Encoded': [style_b_encoded],
+                'A_Kata_Note': [a_kata_note],
+                'A_Kata_Win_Count': [a_kata_win_count],
+                'B_Kata_Loss_Count': [b_kata_loss_count]
+            })
+
+            # Prédire la probabilité
+            proba_victoire_a = model.predict_proba(input_data)[0][1]
+
+            # Ajouter le résultat à la liste
+            resultats.append({
+                'Kata': kata,
+                'Probabilité de Victoire (%)': proba_victoire_a * 100
+            })
+
+        # Créer un DataFrame des résultats
+        resultats_df = pd.DataFrame(resultats)
+        resultats_df = resultats_df.sort_values(by='Probabilité de Victoire (%)', ascending=False)
+
+        # Sélectionner les 3 meilleurs katas
+        top_3_katas = resultats_df.head(3)
+
+        # Afficher les résultats
+        st.subheader(f"Top 3 des Katas pour {nom_a} contre {nom_b}")
+        st.table(top_3_katas)
+
+
 
 
 # Fonction pour ajouter le pied de page
