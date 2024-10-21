@@ -62,12 +62,19 @@ athlete_kata_notes = pd.read_csv('athlete_kata_notes.csv')
 athlete_kata_wins = pd.read_csv('athlete_kata_wins.csv')
 athlete_b_kata_losses = pd.read_csv('athlete_b_kata_losses.csv')
 
+athlete_win_rates = pd.read_csv('athlete_win_rates.csv')  # Contient 'Nom' et 'Win_Rate'
+athlete_kata_win_rates = pd.read_csv('athlete_kata_win_rates.csv')  # Contient 'Nom', 'Kata', 'Kata_Win_Rate'
+nation_win_rates = pd.read_csv('nation_win_rates.csv')  # Contient 'Nation', 'Nation_Win_Rate'
+kata_tour_win_rates = pd.read_csv('kata_tour_win_rates.csv')  # Contient 'Kata', 'N_Tour', 'Kata_Tour_Win_Rate'
+
+
 # Charger le modèle mis à jour
 model = joblib.load('proba_victoire_model_updated.pkl')
 
 # Charger les encodeurs
 le_kata = joblib.load('le_kata.pkl')
 le_style = joblib.load('le_style.pkl')
+le_tour = joblib.load('le_tour.pkl')
 
 # Charger l'historique des confrontations
 confrontation_history = joblib.load('confrontation_history.pkl')
@@ -1182,7 +1189,7 @@ with tab5:
 
     # Définir les listes de katas par style
     katas_shotokan = ['Kanku Dai', 'Jion', 'Enpi', 'Suparinpei', 'Gankaku', 'Unsu', 'Gojushiho_Sho', 'Gojushiho_Dai', 'Sochin', 'Nijushiho', 'Ninjushiho', 'Jitte', 'Sansai', 'Kanku_Sho']
-    katas_shito = ['Anan', 'Papuren', 'Chatanyara_Kushanku', 'Suparinpei', 'Kishimoto_No_Kushanku' 'Chibana_No_Kushanku', 'Anan_Dai', 'Kousoukun_Sho', 'Kousoukun_Dai', 'Kururunfa', 'Heiku', 'Nipaipo', 'Matsumura_Bassai', 'Kyan_No_Chinto', 'Kusanku', 'Oyadomari_No_Passai', 'Ohan', 'Ohan_Dai', 'Paiku', 'Pachu', 'Shisochin', 'Seisan', 'Tomari_Bassai', 'Unshu', 'Ohan ']
+    katas_shito = ['Anan', 'Papuren', 'Chatanyara_Kushanku', 'Suparinpei', 'Kishimoto_No_Kushanku', 'Chibana_No_Kushanku', 'Anan_Dai', 'Kousoukun_Sho', 'Kousoukun_Dai', 'Kururunfa', 'Heiku', 'Nipaipo', 'Matsumura_Bassai', 'Kyan_No_Chinto', 'Kusanku', 'Oyadomari_No_Passai', 'Ohan', 'Ohan_Dai', 'Paiku', 'Pachu', 'Shisochin', 'Seisan', 'Tomari_Bassai', 'Unshu', 'Ohan ']
 
     if style_a == 'Shotokan':
         katas_style = katas_shotokan
@@ -1195,10 +1202,14 @@ with tab5:
     katas_effectues = data[(data['Nom'] == nom_a)]['Kata'].unique().tolist()
 
     # Sélection des katas à exclure
-    katas_selectionnes = st.multiselect("Sélectionnez les katas déjà effectués par l'athlète A", options=katas_style, default=katas_effectues)
+    katas_selectionnes = st.multiselect("Sélectionnez les katas déjà effectués par l'athlète A ou qu'il ne va pas effectuer tout court (C'est à dire ne pas sélectionner les katas que vous voulez tester)", options=katas_style, default=katas_effectues)
 
     # Katas restants
     katas_restants = [kata for kata in katas_style if kata not in katas_selectionnes]
+
+    # Sélection du tour de la rencontre
+    n_tour_options = data['N_Tour'].unique().tolist()
+    n_tour = st.selectbox("Sélectionnez le tour de la rencontre", n_tour_options)
 
     # Bouton pour lancer l'analyse
     if st.button("Calculer les Probabilités de Victoire"):
@@ -1239,8 +1250,25 @@ with tab5:
         style_a_encoded = le_style.transform([style_a])[0] if style_a in le_style.classes_ else -1
         style_b_encoded = le_style.transform([style_b])[0] if style_b in le_style.classes_ else -1
 
+        # Encodage du tour
+        n_tour_encoded = le_tour.transform([n_tour])[0] if n_tour in le_tour.classes_ else -1
+
         # Calcul de la différence de classement
         ranking_diff = ranking_a - ranking_b
+
+        # Calcul de la proportion de victoires des athlètes
+        a_win_rate = athlete_win_rates[athlete_win_rates['Nom'] == nom_a]['Win_Rate']
+        a_win_rate = a_win_rate.iloc[0] if not a_win_rate.empty else 0
+
+        b_win_rate = athlete_win_rates[athlete_win_rates['Nom'] == nom_b]['Win_Rate']
+        b_win_rate = b_win_rate.iloc[0] if not b_win_rate.empty else 0
+
+        # Calcul de la proportion de victoires des nations
+        a_nation_win_rate = nation_win_rates[nation_win_rates['Nation'] == nation_a]['Nation_Win_Rate']
+        a_nation_win_rate = a_nation_win_rate.iloc[0] if not a_nation_win_rate.empty else 0
+
+        b_nation_win_rate = nation_win_rates[nation_win_rates['Nation'] == nation_b]['Nation_Win_Rate']
+        b_nation_win_rate = b_nation_win_rate.iloc[0] if not b_nation_win_rate.empty else 0
 
         for kata in katas_restants:
             # Encodage du kata
@@ -1252,16 +1280,24 @@ with tab5:
                 kata_encoded = le_kata.transform([kata])[0]
 
             # Note moyenne de l'athlète A avec ce kata
-            a_kata_note = athlete_kata_notes[(athlete_kata_notes['Nom'] == nom_a) & (athlete_kata_notes['Kata'] == kata)]['A_Kata_Note']
-            a_kata_note = a_kata_note.iloc[0] if not a_kata_note.empty else 0
+            a_kata_note = data[(data['Nom'] == nom_a) & (data['Kata'] == kata)]['Note'].mean()
+            a_kata_note = a_kata_note if not np.isnan(a_kata_note) else 0
 
             # Nombre de victoires de l'athlète A avec ce kata
-            a_kata_win_count = athlete_kata_wins[(athlete_kata_wins['Nom'] == nom_a) & (athlete_kata_wins['Kata'] == kata)]['A_Kata_Win_Count']
-            a_kata_win_count = a_kata_win_count.iloc[0] if not a_kata_win_count.empty else 0
+            A_kata_win_count = athlete_kata_wins[(athlete_kata_wins['Nom'] == nom_a) & (athlete_kata_wins['Kata'] == kata)]['Kata_Win_Count']
+            A_kata_win_count = A_kata_win_count.iloc[0] if not A_kata_win_count.empty else 0
 
             # Nombre de défaites de l'athlète B contre ce kata
-            b_kata_loss_count = athlete_b_kata_losses[(athlete_b_kata_losses['B_Nom'] == nom_b) & (athlete_b_kata_losses['A_Kata'] == kata)]['B_Kata_Loss_Count']
-            b_kata_loss_count = b_kata_loss_count.iloc[0] if not b_kata_loss_count.empty else 0
+            B_kata_loss_count = athlete_b_kata_losses[(athlete_b_kata_losses['B_Nom'] == nom_b) & (athlete_b_kata_losses['A_Kata'] == kata)]['B_Kata_Loss_Count']
+            B_kata_loss_count = B_kata_loss_count.iloc[0] if not B_kata_loss_count.empty else 0
+
+            # Proportion de victoires de l'athlète A avec ce kata
+            a_kata_win_rate = athlete_kata_win_rates[(athlete_kata_win_rates['Nom'] == nom_a) & (athlete_kata_win_rates['Kata'] == kata)]['Kata_Win_Rate']
+            a_kata_win_rate = a_kata_win_rate.iloc[0] if not a_kata_win_rate.empty else 0
+
+            # Proportion de victoire du kata à ce tour en général
+            kata_tour_win_rate = kata_tour_win_rates[(kata_tour_win_rates['Kata'] == kata) & (kata_tour_win_rates['N_Tour'] == n_tour)]['Kata_Tour_Win_Rate']
+            kata_tour_win_rate = kata_tour_win_rate.iloc[0] if not kata_tour_win_rate.empty else 0
 
             # Création du DataFrame d'entrée
             input_data = pd.DataFrame({
@@ -1273,8 +1309,15 @@ with tab5:
                 'A_Style_Encoded': [style_a_encoded],
                 'B_Style_Encoded': [style_b_encoded],
                 'A_Kata_Note': [a_kata_note],
-                'A_Kata_Win_Count': [a_kata_win_count],
-                'B_Kata_Loss_Count': [b_kata_loss_count]
+                'A_Kata_Win_Count': [A_kata_win_count],
+                'B_Kata_Loss_Count': [B_kata_loss_count],
+                'A_Win_Rate': [a_win_rate],
+                'B_Win_Rate': [b_win_rate],
+                'A_Kata_Win_Rate': [a_kata_win_rate],
+                'A_Nation_Win_Rate': [a_nation_win_rate],
+                'B_Nation_Win_Rate': [b_nation_win_rate],
+                'N_Tour_Encoded': [n_tour_encoded],
+                'Kata_Tour_Win_Rate': [kata_tour_win_rate]
             })
 
             # Prédire la probabilité
@@ -1294,7 +1337,7 @@ with tab5:
         top_3_katas = resultats_df.head(3)
 
         # Afficher les résultats
-        st.subheader(f"Top 3 des Katas pour {nom_a} contre {nom_b}")
+        st.subheader(f"Top 3 des Katas pour {nom_a} contre {nom_b} au tour {n_tour}")
         st.table(top_3_katas)
 
 
