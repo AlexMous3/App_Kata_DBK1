@@ -1202,10 +1202,10 @@ with tab5:
     katas_effectues = data[(data['Nom'] == nom_a)]['Kata'].unique().tolist()
 
     # Sélection des katas à exclure
-    katas_selectionnes = st.multiselect("Sélectionnez les katas déjà effectués par l'athlète A ou qu'il ne va pas effectuer tout court (C'est à dire ne pas sélectionner les katas que vous voulez tester)", options=katas_style, default=katas_effectues)
+    katas_selectionnes = st.multiselect("Sélectionner les katas à tester pour l'athlète A", options=katas_style, default=katas_effectues)
 
     # Katas restants
-    katas_restants = [kata for kata in katas_style if kata not in katas_selectionnes]
+    katas_restants = [kata for kata in katas_style if kata in katas_selectionnes]
 
     # Sélection du tour de la rencontre
     n_tour_options = data['N_Tour'].unique().tolist()
@@ -1335,6 +1335,7 @@ with tab5:
 
         # Sélectionner les 3 meilleurs katas
         top_3_katas = resultats_df.head(3)
+        top_3_katas.reset_index()
 
         # Afficher les résultats
         st.subheader(f"Top 3 des Katas pour {nom_a} contre {nom_b} au tour {n_tour}")
